@@ -55,7 +55,7 @@ export const HealthIndexGauge: React.FC<HealthIndexGaugeProps> = ({
               <Cell key="cell-0" fill={color} />
               <Cell key="cell-1" fill="#e2e8f0" />
               <Label
-                value={`${value.toFixed(2)}%`}
+                value={`${value.toFixed(1)}%`}
                 position="center"
                 className="text-lg font-bold"
                 style={{

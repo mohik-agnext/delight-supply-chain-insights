@@ -1,10 +1,13 @@
 import * as React from "react";
+import { batchShifts, BatchShift } from "@/data/biscuitManufacturingData";
 
 // Define default values in a central place for consistency
 const DEFAULT_VALUES = {
   vendors: ["All Vendors"],
   timePeriods: ["Last 6 Months"],
-  dateOption: "Last 6 Months" as DateOptionType
+  dateOption: "Last 6 Months" as DateOptionType,
+  selectedBatchShifts: ["morning", "afternoon", "night"] as BatchShift[],
+  selectedDate: null as Date | null
 };
 
 // Date option types
@@ -30,6 +33,14 @@ type FilterContextType = {
   customDateRange: DateRange;
   setCustomDateRange: (range: DateRange) => void;
   
+  // Batch filtering options
+  selectedBatchShifts: BatchShift[];
+  setSelectedBatchShifts: (shifts: BatchShift[]) => void;
+  
+  // Selected specific date for batch drill-down
+  selectedDate: Date | null;
+  setSelectedDate: (date: Date | null) => void;
+  
   // Add a flag to indicate if context is fully initialized
   isReady: boolean;
 };
@@ -46,6 +57,14 @@ const initialContextState: FilterContextType = {
   setSelectedDateOption: () => {},
   customDateRange: { startDate: null, endDate: null },
   setCustomDateRange: () => {},
+  
+  // Default batch filtering
+  selectedBatchShifts: DEFAULT_VALUES.selectedBatchShifts,
+  setSelectedBatchShifts: () => {},
+  
+  // Default selected date
+  selectedDate: DEFAULT_VALUES.selectedDate,
+  setSelectedDate: () => {},
   
   isReady: false
 };
@@ -105,6 +124,12 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
     endDate: null 
   });
   
+  // Initialize batch filtering state
+  const [selectedBatchShifts, setSelectedBatchShifts] = React.useState<BatchShift[]>(DEFAULT_VALUES.selectedBatchShifts);
+  
+  // Initialize selected date for batch drill-down
+  const [selectedDate, setSelectedDate] = React.useState<Date | null>(DEFAULT_VALUES.selectedDate);
+  
   // Ensure state is properly initialized
   React.useEffect(() => {
     // Mark context as ready on first render - adds an initialization checkpoint
@@ -128,6 +153,11 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
       setCustomDateRange(getDateRangeFromOption(option));
     }
   }, []);
+  
+  // Safe setter for batch shifts
+  const safeSetSelectedBatchShifts = React.useCallback((shifts: BatchShift[]) => {
+    setSelectedBatchShifts(Array.isArray(shifts) ? shifts : DEFAULT_VALUES.selectedBatchShifts);
+  }, []);
 
   // Use memoized value for the context to ensure stable references
   const contextValue = React.useMemo(() => ({
@@ -142,12 +172,22 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
     customDateRange,
     setCustomDateRange,
     
+    // Batch filtering
+    selectedBatchShifts: Array.isArray(selectedBatchShifts) ? selectedBatchShifts : DEFAULT_VALUES.selectedBatchShifts,
+    setSelectedBatchShifts: safeSetSelectedBatchShifts,
+    
+    // Selected date
+    selectedDate,
+    setSelectedDate,
+    
     isReady
   }), [
     selectedVendors, safeSetSelectedVendors,
     selectedTimePeriods, safeSetSelectedTimePeriods,
     selectedDateOption, safeSetSelectedDateOption,
     customDateRange,
+    selectedBatchShifts, safeSetSelectedBatchShifts,
+    selectedDate,
     isReady
   ]);
 

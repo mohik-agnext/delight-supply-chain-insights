@@ -9,6 +9,10 @@ export const getStatusFromRange = (value: number, min: number, max: number) => {
   }
 };
 
+// Batch shift types
+export type BatchShift = "morning" | "afternoon" | "night";
+export const batchShifts: BatchShift[] = ["morning", "afternoon", "night"];
+
 // --- DUMMY DATA FOR INTERACTIVE FILTERS (exact dates, per vendor, from 2025-01-01 to today) ---
 function generateMonthlyData(startDate, endDate, vendors, valueFn) {
   const data = [];
@@ -24,69 +28,158 @@ function generateMonthlyData(startDate, endDate, vendors, valueFn) {
   return data;
 }
 
+// Generate data with daily batch information (3 shifts per day)
+function generateDailyBatchData(startDate, endDate, vendors, valueFn) {
+  const data = [];
+  let date = new Date(startDate);
+  const end = new Date(endDate);
+  
+  while (date <= end) {
+    const iso = date.toISOString().slice(0, 10);
+    for (const vendor of vendors) {
+      // Generate base value for the day
+      const baseValue = valueFn(vendor, new Date(iso));
+      
+      // Add three batches per day (morning, afternoon, night) with distinct values
+      for (const shift of batchShifts) {
+        // Create unique batch ID in format: "date_shift" (e.g., "2025-01-01_morning")
+        const batchId = `${iso}_${shift}`;
+        
+        // Generate significantly different values for each shift
+        let shiftValue;
+        
+        if (shift === "morning") {
+          // Morning batches: -5% to -15% from base
+          shiftValue = typeof baseValue === 'object' 
+            ? applyVariationToObject(baseValue, 0.85, 0.95)
+            : baseValue * (0.85 + Math.random() * 0.10);
+        } else if (shift === "afternoon") {
+          // Afternoon batches: -2% to +8% from base
+          shiftValue = typeof baseValue === 'object'
+            ? applyVariationToObject(baseValue, 0.98, 1.08) 
+            : baseValue * (0.98 + Math.random() * 0.10);
+        } else { // night
+          // Night batches: +5% to +15% from base
+          shiftValue = typeof baseValue === 'object'
+            ? applyVariationToObject(baseValue, 1.05, 1.15)
+            : baseValue * (1.05 + Math.random() * 0.10);
+        }
+        
+        // Randomly introduce outliers (2% chance)
+        if (Math.random() < 0.02) {
+          shiftValue = typeof baseValue === 'object'
+            ? applyOutlierToObject(baseValue)
+            : baseValue * (Math.random() > 0.5 ? 1.20 : 0.80); // +/- 20% outlier
+        }
+        
+        data.push({ 
+          date: iso, 
+          vendor, 
+          value: typeof shiftValue === 'object' 
+            ? shiftValue 
+            : Number(shiftValue.toFixed(2)),
+          shift,
+          batchId
+        });
+      }
+    }
+    
+    // Move to next day
+    date.setDate(date.getDate() + 1);
+  }
+  return data;
+}
+
+// Helper function to apply variation to each property in an object
+function applyVariationToObject(obj, minFactor, maxFactor) {
+  const result = {};
+  const variationFactor = minFactor + Math.random() * (maxFactor - minFactor);
+  
+  for (const key in obj) {
+    // Apply slightly different variation to each property
+    const propertyVariation = variationFactor * (0.95 + Math.random() * 0.1);
+    result[key] = Number((obj[key] * propertyVariation).toFixed(2));
+  }
+  
+  return result;
+}
+
+// Helper function to create outliers in object values
+function applyOutlierToObject(obj) {
+  const result = {};
+  
+  for (const key in obj) {
+    // 50% chance of being high or low outlier
+    const outlierFactor = Math.random() > 0.5 ? 1.20 : 0.80;
+    result[key] = Number((obj[key] * outlierFactor).toFixed(2));
+  }
+  
+  return result;
+}
+
 const vendors = ["Vendor A", "Vendor B", "Vendor C", "Vendor D", "Vendor E"];
 const today = new Date();
 const start = new Date("2025-01-01");
 
-// Generate filterable data for all key metrics
-export const productionHealthIndexData = generateMonthlyData(
+// Generate filterable data for all key metrics with batch information
+export const productionHealthIndexData = generateDailyBatchData(
   start,
   today,
   vendors,
   (vendor, date) => 85 + Math.floor(Math.random() * 10) // 85-94
 );
 
-// Generate data for health indices by category
-export const rawMaterialsHealthData = generateMonthlyData(
+// Generate data for health indices by category with batch information
+export const rawMaterialsHealthData = generateDailyBatchData(
   start,
   today,
   vendors,
   (vendor, date) => 90 + Math.floor(Math.random() * 8) // 90-97
 );
 
-export const doughPreparationHealthData = generateMonthlyData(
+export const doughPreparationHealthData = generateDailyBatchData(
   start,
   today,
   vendors,
   (vendor, date) => 90 + Math.floor(Math.random() * 6) // 90-95
 );
 
-export const bakingHealthData = generateMonthlyData(
+export const bakingHealthData = generateDailyBatchData(
   start,
   today,
   vendors,
   (vendor, date) => 90 + Math.floor(Math.random() * 7) // 90-96
 );
 
-export const operationalHealthData = generateMonthlyData(
+export const operationalHealthData = generateDailyBatchData(
   start,
   today,
   vendors,
   (vendor, date) => 85 + Math.floor(Math.random() * 10) // 85-94
 );
 
-export const flourMoistureData = generateMonthlyData(
+export const flourMoistureData = generateDailyBatchData(
   start,
   today,
   vendors,
   (vendor, date) => 13 + Math.random() * 1 // 13.0-14.0
 );
 
-export const doughTemperatureData = generateMonthlyData(
+export const doughTemperatureData = generateDailyBatchData(
   start,
   today,
   vendors,
   (vendor, date) => 24 + Math.random() * 6 // 24-30
 );
 
-export const ovenTemperatureData = generateMonthlyData(
+export const ovenTemperatureData = generateDailyBatchData(
   start,
   today,
   vendors,
   (vendor, date) => 178 + Math.random() * 10 // 178-188
 );
 
-export const productionYieldData = generateMonthlyData(
+export const productionYieldData = generateDailyBatchData(
   start,
   today,
   vendors,
@@ -94,7 +187,7 @@ export const productionYieldData = generateMonthlyData(
 );
 
 // Generate data for batch consistency
-export const batchConsistencyData = generateMonthlyData(
+export const batchConsistencyData = generateDailyBatchData(
   start, 
   today,
   vendors,
@@ -102,7 +195,7 @@ export const batchConsistencyData = generateMonthlyData(
 );
 
 // Generate data for rejection rates
-export const rejectionRateData = generateMonthlyData(
+export const rejectionRateData = generateDailyBatchData(
   start,
   today,
   vendors,
@@ -110,7 +203,7 @@ export const rejectionRateData = generateMonthlyData(
 );
 
 // Generate data for all raw material parameters
-export const rawMaterialParamsData = generateMonthlyData(
+export const rawMaterialParamsData = generateDailyBatchData(
   start,
   today,
   vendors,
@@ -119,26 +212,26 @@ export const rawMaterialParamsData = generateMonthlyData(
     glutenStrength: 20 + Math.random() * 20,
     sugarContent: 20 + Math.random() * 10,
     fatContent: 10 + Math.random() * 15,
-    leaveningQuality: 95 + Math.random() * 5,
-    waterQuality: 6.5 + Math.random() * 1
+    leaveningQuality: 93 + Math.random() * 5, // 95-100% active (within range)
+    waterQuality: 6.0 + (Math.random() * (7.5 - 6.5)) // 6.5-7.5 pH (within range)
   })
 );
 
 // Generate data for dough preparation parameters
-export const doughPrepParamsData = generateMonthlyData(
+export const doughPrepParamsData = generateDailyBatchData(
   start,
   today,
   vendors,
   (vendor, date) => ({
     temperature: 20 + Math.random() * 10,
     consistency: 400 + Math.random() * 200,
-    mixingTime: 8 + Math.random() * 12,
-    restingTime: 10 + Math.random() * 20
+    mixingTime: 8 + Math.random() * 7,
+    restingTime: 15 + Math.random() * 10
   })
 );
 
 // Generate data for baking parameters
-export const bakingParamsData = generateMonthlyData(
+export const bakingParamsData = generateDailyBatchData(
   start,
   today,
   vendors,
